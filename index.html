@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmojiExpress Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #ffffff;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 12px;
+      overflow-x: hidden;
+    }
+
+    /* Refactored layout to eliminate empty space and use full viewport height */
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .header {
+      text-align: center;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .header p {
+      font-size: 12px;
+      opacity: 0.95;
+      margin: 4px 0 0 0;
+    }
+
+    /* Redesigned grid layout with balanced columns and no empty space */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1fr 1fr;
+      gap: 12px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .header p {
+        font-size: 11px;
+      }
+
+      body {
+        padding: 8px;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      border: 1px solid #e8e8e8;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Left column now uses full available height */
+    .game-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      height: 100%;
+    }
+
+    .camera-wrapper {
+      flex: 1.2;
+      min-height: 280px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+      border: 1px solid #e0e0e0;
+      position: relative;
+    }
+
+    .camera-wrapper video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .camera-status {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(76, 175, 80, 0.95);
+      color: white;
+      padding: 6px 10px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    #canvas { display: none; }
+
+    /* Compact stats with better spacing */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .stat-box {
+      background: linear-gradient(135deg, #f8f9fa 0%, #f0f1f5 100%);
+      border: 1px solid #e8e8e8;
+      border-radius: 10px;
+      padding: 11px 6px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: #999;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      letter-spacing: 0.3px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Optimized emoji display with better proportions */
+    .emoji-target {
+      background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+      border: 2px dashed #ddd;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      transition: all 0.3s ease;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .emoji-target.active {
+      background: linear-gradient(135deg, #f0f5ff 0%, #f5f0ff 100%);
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .emoji-label {
+      font-size: 10px;
+      color: #999;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .emoji-display {
+      font-size: 56px;
+      animation: pulse-emoji 0.8s ease-in-out infinite alternate;
+      margin: 6px 0;
+    }
+
+    @keyframes pulse-emoji {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
+
+    .emoji-description {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* Button controls with better layout */
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      text-align: center;
+      flex: 1;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #e0e0e0;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+      color: white;
+    }
+
+    /* Center and right columns now fill available height with no overflow */
+    .info-column, .scoring-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .info-section {
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      border-radius: 10px;
+      padding: 11px;
+      flex-shrink: 0;
+    }
+
+    .info-section h3 {
+      font-size: 12px;
+      margin-bottom: 7px;
+      color: #667eea;
+      font-weight: 700;
+    }
+
+    .info-section ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .info-section li {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .info-section li:last-child {
+      margin-bottom: 0;
+    }
+
+    .scoring-grid {
+      display: grid;
+      gap: 7px;
+    }
+
+    .score-item {
+      background: #f8f9fa;
+      border: 1px solid #e8e8e8;
+      border-radius: 9px;
+      padding: 9px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .score-points {
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .reward-box {
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      border-radius: 10px;
+      padding: 11px;
+    }
+
+    .reward-box h4 {
+      font-size: 12px;
+      color: #667eea;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+    .reward-item {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .reward-item:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Results modal */
+    .results-section {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .results-content {
+      background: white;
+      border-radius: 20px;
+      padding: 36px 28px;
+      text-align: center;
+      max-width: 450px;
+      width: 90%;
+      animation: slideUp 0.4s ease;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .results-emoji {
+      font-size: 70px;
+      margin-bottom: 16px;
+      animation: bounce 0.8s ease-in-out;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+
+    .results-content h2 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: #000;
+      font-weight: 800;
+    }
+
+    .final-score {
+      font-size: 18px;
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 10px;
+    }
+
+    #rewardMsg {
+      color: #4caf50;
+      font-weight: 600;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .results-content .btn {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 12px;
+    }
+
+    .results-content .btn:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Improved scrollbar styling for better appearance */
+    .info-column::-webkit-scrollbar,
+    .scoring-column::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .info-column::-webkit-scrollbar-track,
+    .scoring-column::-webkit-scrollbar-track {
+      background: #f5f5f5;
+      border-radius: 10px;
+    }
+
+    .info-column::-webkit-scrollbar-thumb,
+    .scoring-column::-webkit-scrollbar-thumb {
+      background: #ddd;
+      border-radius: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .info-column, .scoring-column {
+        max-height: 300px;
+      }
+
+      .results-content {
+        padding: 24px 16px;
+      }
+
+      .results-emoji {
+        font-size: 50px;
+      }
+
+      .results-content h2 {
+        font-size: 22px;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎮 EmojiExpress</h1>
+      <p>Master Your Expressions, Earn Rewards</p>
+    </div>
+
+    <div class="main-grid">
+      <!-- LEFT COLUMN: Game -->
+      <div class="game-column">
+        <div class="card camera-wrapper">
+          <video id="video" autoplay playsinline></video>
+          <div class="camera-status">
+            <div class="status-dot"></div>
+            <span>Live</span>
+          </div>
+          <canvas id="canvas" width="320" height="240"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="stats">
+            <div class="stat-box">
+              <span class="stat-label">Round</span>
+              <span class="stat-value" id="round">0/5</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Score</span>
+              <span class="stat-value" id="score">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Time</span>
+              <span class="stat-value" id="timer">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card emoji-target" id="emojiTarget">
+          <p class="emoji-label">Match this expression:</p>
+          <div class="emoji-display" id="emoji">😀</div>
+          <p class="emoji-description" id="emojiDesc">Try to make this face!</p>
+        </div>
+
+        <div class="card">
+          <div class="controls">
+            <button id="startBtn" class="btn btn-primary" onclick="startGame()">Start Game</button>
+            <button id="skipBtn" class="btn btn-secondary" onclick="skipRound()" style="display: none;">Skip</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER COLUMN: How to Play & Scoring -->
+      <div class="info-column">
+        <div class="card">
+          <div class="info-section">
+            <h3>📋 How to Play</h3>
+            <ul>
+              <li>✅ Allow camera access</li>
+              <li>✅ Click "Start Game"</li>
+              <li>✅ Match emoji expression</li>
+              <li>✅ React naturally</li>
+              <li>✅ Get detected & earn</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="info-section">
+            <h3>🏆 Scoring Rules</h3>
+            <div class="scoring-grid">
+              <div class="score-item">
+                <span>Perfect Match</span>
+                <span class="score-points">100 pts</span>
+              </div>
+              <div class="score-item">
+                <span>Good Match</span>
+                <span class="score-points">75 pts</span>
+              </div>
+              <div class="score-item">
+                <span>Fair Match</span>
+                <span class="score-points">50 pts</span>
+              </div>
+              <div class="score-item">
+                <span>Total (5 rounds)</span>
+                <span class="score-points">Up to 500</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Rewards & Tips -->
+      <div class="scoring-column">
+        <div class="card">
+          <div class="reward-box">
+            <h4>💎 Rewards</h4>
+            <div class="reward-item">🎁 250+ points = 5 EMOJO</div>
+            <div class="reward-item">🔗 Blockchain verified</div>
+            <div class="reward-item">⛓️ Ethereum network</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="info-section">
+            <h3>💡 Pro Tips</h3>
+            <ul>
+              <li>🎯 Good lighting helps</li>
+              <li>🎯 Clear expressions</li>
+              <li>🎯 Face centered</li>
+              <li>🎯 5-sec time limit</li>
+              <li>🎯 Relax & have fun!</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="info-section">
+            <h3>🎯 Leaderboard</h3>
+            <div class="scoring-grid">
+              <div class="score-item">
+                <span>🥇 Champion</span>
+                <span class="score-points">500</span>
+              </div>
+              <div class="score-item">
+                <span>🥈 Pro Master</span>
+                <span class="score-points">475</span>
+              </div>
+              <div class="score-item">
+                <span>🥉 Expert</span>
+                <span class="score-points">450</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Modal -->
+  <div id="resultsSection" class="results-section" style="display: none;">
+    <div class="results-content">
+      <p class="results-emoji">🎉</p>
+      <h2>Game Complete!</h2>
+      <p class="final-score">Final Score: <span id="finalScore">0</span> / 500</p>
+      <p id="rewardMsg"></p>
+      <button id="claimBtn" class="btn btn-success" onclick="claimReward()" style="display: none;">💰 Claim Reward</button>
+      <button class="btn btn-primary" onclick="location.reload()">🎮 Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const emojiEl = document.getElementById("emoji");
+    const emojiTarget = document.getElementById("emojiTarget");
+    const emojiDesc = document.getElementById("emojiDesc");
+    const timerEl = document.getElementById("timer");
+    const scoreEl = document.getElementById("score");
+    const roundEl = document.getElementById("round");
+    const resultsSection = document.getElementById("resultsSection");
+    const startBtn = document.getElementById("startBtn");
+    const skipBtn = document.getElementById("skipBtn");
+
+    let totalScore = 0;
+    let currentRound = 0;
+    let emojis = [];
+    let gameInProgress = false;
+    let currentCountdown = null;
+
+    const allEmojis = ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","😋","😎","😍","😘","😗","😙","😚","🙂","🤗","🤩","🤔","🤨","😐","😑","😶","🙄","😏","😣","😥","😮","🤐","😯","😪","😫","🥱","😴","😌","😛","😜","😝","🤤","😒","😓","😔","😕","🙃","🤑","😲","☹️","🙁","😖","😞","😟","😤","😢","😭","😦","😧","😨","😩","🤯","😬","😰","😱","🥵","🥶","😳","🤪","😵","🥴","😠","😡","🤬","😷","🤒","🤕","🤢","🤮","🥴","😇","🥰"];
+
+    const emojiDescriptions = {
+      "😀": "Show a big smile!",
+      "😂": "Laugh out loud!",
+      "😢": "Look sad",
+      "😠": "Look angry",
+      "😲": "Look surprised",
+      "🤔": "Look thoughtful",
+      "😎": "Look cool",
+      "😍": "Look loving",
+      "😨": "Look scared",
+      "🥳": "Look celebratory"
+    };
+
+    async function setupCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "user" } 
+        });
+        video.srcObject = stream;
+      } catch (error) {
+        console.error("Camera access error:", error);
+        alert("Please allow camera access to play the game.");
+      }
+    }
+
+    setupCamera();
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function startGame() {
+      totalScore = 0;
+      currentRound = 0;
+      gameInProgress = true;
+      scoreEl.innerText = totalScore;
+      emojis = shuffle([...allEmojis]).slice(0, 5);
+      resultsSection.style.display = "none";
+      startBtn.style.display = "none";
+      skipBtn.style.display = "block";
+      nextRound();
+    }
+
+    function skipRound() {
+      if (currentCountdown) clearInterval(currentCountdown);
+      currentRound++;
+      if (currentRound >= 5) {
+        endGame();
+      } else {
+        nextRound();
+      }
+    }
+
+    async function nextRound() {
+      if (currentRound >= 5) return endGame();
+      const currentEmoji = emojis[currentRound];
+      emojiEl.innerText = currentEmoji;
+      emojiDesc.innerText = emojiDescriptions[currentEmoji] || "Try to make this face!";
+      emojiTarget.classList.add("active");
+      roundEl.innerText = (currentRound + 1) + "/5";
+      let timeLeft = 5;
+      timerEl.innerText = timeLeft;
+
+      currentCountdown = setInterval(() => {
+        timeLeft--;
+        timerEl.innerText = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(currentCountdown);
+          captureAndAnalyze();
+        }
+      }, 1000);
+    }
+
+    async function captureAndAnalyze() {
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const image = canvas.toDataURL("image/jpeg");
+        const res = await fetch("http://127.0.0.1:5000/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image }),
+        });
+        const data = await res.json();
+        const roundScore = Math.min(100, data.score || 50);
+        totalScore += roundScore;
+        scoreEl.innerText = totalScore;
+        currentRound++;
+        emojiTarget.classList.remove("active");
+        setTimeout(nextRound, 800);
+      } catch (error) {
+        console.error("Analysis error:", error);
+        currentRound++;
+        emojiTarget.classList.remove("active");
+        setTimeout(nextRound, 800);
+      }
+    }
+
+    function endGame() {
+      gameInProgress = false;
+      skipBtn.style.display = "none";
+      emojiTarget.classList.remove("active");
+      emojiEl.innerText = "🎉";
+      roundEl.innerText = "5/5";
+      
+      document.getElementById("finalScore").innerText = totalScore;
+      
+      if (totalScore >= 250) {
+        document.getElementById("rewardMsg").innerText = "🎊 Excellent! You earned 5 EMOJO tokens!";
+        document.getElementById("claimBtn").style.display = "block";
+      } else {
+        document.getElementById("rewardMsg").innerText = `Score: ${totalScore}. Reach 250+ points to earn rewards!`;
+        document.getElementById("claimBtn").style.display = "none";
+      }
+      
+      resultsSection.style.display = "flex";
+    }
+
+    async function claimReward() {
+      try {
+        const walletAddress = await window.ethereum.request({ method: "eth_requestAccounts" });
+        const userAddress = walletAddress[0];
+
+        const res = await fetch("http://127.0.0.1:5000/claim-reward", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: userAddress, score: totalScore }),
+        });
+
+        const data = await res.json();
+
+        if (data.status === "success") {
+          document.getElementById("rewardMsg").innerHTML = `✅ You received 5 EMOJO tokens on Ethereum!`;
+          confetti();
+
+          const tokenAddress = "0xB2D7c58AAD19633B454AcFd9CE56a7f148C17a69";
+          const tokenSymbol = "EMOJO";
+          const tokenDecimals = 18;
+
+          try {
+            await window.ethereum.request({
+              method: "wallet_watchAsset",
+              params: {
+                type: "ERC20",
+                options: { address: tokenAddress, symbol: tokenSymbol, decimals: tokenDecimals },
+              },
+            });
+          } catch (error) {
+            console.error("MetaMask add token error:", error);
+          }
+        } else {
+          document.getElementById("rewardMsg").innerText = "⚠️ " + data.message;
+        }
+      } catch (error) {
+        console.error("Claim reward error:", error);
+        alert("Error claiming reward. Please try again.");
+      }
+    }
+  </script>
+</body>
+</html>
