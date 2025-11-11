@@ -1,0 +1,8 @@
+Flask
+flask-cors
+fer
+opencv-python-headless
+numpy
+web3
+python-dotenv
+gunicorn
