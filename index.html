@@ -747,7 +747,7 @@
       try {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const image = canvas.toDataURL("image/jpeg");
-        const res = await fetch("http://127.0.0.1:5000/analyze", {
+        const res = await fetch("https://emoji-express.onrender.com/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ image }),
@@ -792,7 +792,7 @@
         const walletAddress = await window.ethereum.request({ method: "eth_requestAccounts" });
         const userAddress = walletAddress[0];
 
-        const res = await fetch("http://127.0.0.1:5000/claim-reward", {
+        const res = await fetch("https://emoji-express.onrender.com/claim-reward", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address: userAddress, score: totalScore }),
@@ -830,3 +830,4 @@
   </script>
 </body>
 </html>
+
