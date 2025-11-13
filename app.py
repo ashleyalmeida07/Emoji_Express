@@ -3,7 +3,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'     # Suppress TensorFlow logging
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from fer import FER
+from fer.fer import FER
 import cv2
 import numpy as np
 import base64
@@ -185,3 +185,4 @@ def home():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
